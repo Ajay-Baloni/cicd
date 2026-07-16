@@ -1,0 +1,7 @@
+services:
+  app:
+    image: ajaybalonii/cicd-test:latest
+    container_name: "cicd-app"
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
