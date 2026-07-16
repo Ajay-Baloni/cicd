@@ -1,0 +1,10 @@
+{
+  "name": "cicd-demo",
+  "version": "1.0.0",
+  "description": "Bare minimum Node.js app for learning CI/CD",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node index.test.js"
+  }
+}
