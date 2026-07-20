@@ -1,1 +1,21 @@
+# Dependencies
 node_modules/
+
+# Real environment files — these hold credentials and must never be committed.
+# Only the .env.example templates belong in git.
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+
+# Prisma's generated client is a build artifact, produced by `prisma generate`
+# during the Docker build rather than committed.
+backend/src/generated/
+
+# Logs and OS noise
+*.log
+npm-debug.log*
+.DS_Store

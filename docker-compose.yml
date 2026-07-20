@@ -1,7 +1,76 @@
+# Local development stack. This mirrors the production topology (separate
+# database, separate API, separate static frontend) so that what you debug here
+# resembles what runs on AWS.
+#
+# One deliberate difference: Postgres runs in a container here, but in
+# production it is RDS. Never run your production database in a container on
+# the same box as the app — the data dies with the instance.
+
 services:
-  app:
-    image: ajaybalonii/cicd-test:latest
-    container_name: "cicd-app"
-    restart: unless-stopped
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Other services wait on this, so the API never starts against a
+      # database that is still initialising.
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Runs migrations to completion, then exits. The API waits for it to succeed.
+  # This models the production sequence exactly: migrate first, as its own
+  # step, and abort the deploy if it fails.
+  migrate:
+    build:
+      context: ./backend
+      target: migrator
+    environment:
+      DATABASE_URL: postgresql://app:app@postgres:5432/app?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: ./backend
+      target: runtime
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://app:app@postgres:5432/app?schema=public
+      CORS_ORIGIN: http://localhost:8080,http://localhost:5173
+      LOG_LEVEL: info
     ports:
       - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        # NOTE: this is a BUILD argument, not a runtime variable.
+        # Vite bakes it into the JS bundle, so changing it requires a rebuild —
+        # and anything put here is publicly readable in the browser.
+        VITE_API_URL: http://localhost:3000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:

@@ -1,8 +1,18 @@
-name: Build and push Docker image
+# ⚠️  SUPERSEDED — kept for reference, rewritten in Phase 2.
+#
+# This targeted the old single-file app at the repo root. That app has moved
+# into backend/, so `npm ci` and `npm test` at the root would now fail, and the
+# root docker-compose.yml is the LOCAL DEV stack — deploying it would ship a
+# containerised Postgres to production.
+#
+# The trigger is reduced to manual-only so it no longer fails on every push.
+# Phase 2 replaces this with ci.yml (PR checks) and deploy.yml (SHA-tagged
+# images, ECR, migrations, blue/green, rollback).
+
+name: Build and push Docker image (superseded)
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   build-and-push:
